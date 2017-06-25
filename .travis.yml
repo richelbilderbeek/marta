@@ -49,7 +49,5 @@ script:
   - codecov >/dev/null
   # OCLint
   - ./do_oclint
-
-after_success:
+  # Code coverage
   - bash <(curl -s https://codecov.io/bash)
-
