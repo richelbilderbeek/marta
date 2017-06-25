@@ -17,6 +17,8 @@ install:
   - export QMAKE=/usr/lib/x86_64-linux-gnu/qt5/bin/qmake
   # gcov
   - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-6 90
+  # valgrind, for helgrind and memcheck
+  - sudo apt-get install -qq valgrind
   # cppcheck
   - sudo apt-get install -qq cppcheck
   # Codecov
@@ -36,6 +38,12 @@ script:
   - qmake marta.pro
   - make debug
   - ./marta
+  # helgrind
+  - valgrind --tool=helgrind --log-file=helgrind.log -v ./marta
+  - cat helgrind.log
+  # memcheck
+  - valgrind --leak-check=full -v --show-reachable=yes --log-file=memcheck.log ./marta
+  - cat memcheck.log
   # Profiling, requires a rebuild in release mode
   - qmake marta.pro
   - make release
