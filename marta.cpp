@@ -26,10 +26,9 @@ std::mt19937_64 rng(seed);
 
 /**model parameters**/
 int iNgenesQ = 10;
-double m = 0.001; // mutational rate p and t
-double ni = 0.005; // mutational rate di Q (deletirious)
+double m = 0.01; // mutational rate p and t
+double ni = 0.05; // mutational rate di Q (deletirious)
 double signma = 0.05; // distribution withd
-double vi = 0.0001; // beneficial mutational rate di Q
 double alfaA = 5.0; // effeiciency resource -> ornament
 double alfaa = 4.0;
 double viaA = 1.0;
@@ -38,111 +37,103 @@ double beta = 0.5;
 double betaA = 0.5;
 double yeta = 0.05;
 int iPopsize = 200; // keep it even
-int nTryMale = 100; // numeber of males female watch and compare
 int tmax = 2001; // +1!!!
 bool isfemale;
-double f = 0.;
+double f = 0.; // f for condition dependent expression of t 1= no condition dependent
+double e = 0; // for environmental dependency on quality 0= no environmental effects
+double emin = 0.0;
+double emax = 1.0;
+double vartp = 0.5; // witdh initial variation for genes trait p and t
 int iNsimulation = 1;
 
 /*Definition of the class Female*/
 class Female {
 public:
 	Female();
-	std::vector <int> vectorQ;
 	double getp() const { return (p); } // to caluclate average p 
+	double getnumberQ() const { return (nQ); }
+	double getQE() const { return (nQE); }
 	double getQ();
 	std::pair <double, double> gett1t2() const { return std::pair <double, double>(t1, t2); } // to caluclate average p 
-	void writegenome(double &, std::vector <double> &, std::vector <int> &);
+	void writegenome(double &, std::vector <double> &, int  &);
 private:
 	double p; // first allele preference
 	double t1; // 1 trait all
 	double t2;
+	double nQ;
+	double nQE; // environmental quality
 };
 /*Definition of the class Male*/
 class Male {
 public:
 	Male();
-	std::vector <int> vectorQ;
-	bool isAlive = true;
 	double getp() const { return (p); } // to caluclate average p 
+	double getnumberQ() const { return (nQ); }
+	double getQE() const { return (nQE); }
 	double getQ();
 	double getS();
 	double gett();
 	std::pair <double, double> gett1t2() const { return std::pair <double, double>(t1, t2); }
-	void writegenome(double &, std::vector <double> &, std::vector <int> &);
+	void writegenome(double &, std::vector <double> &, int  &);
 private:
 	double p;
 	double t1;
 	double t2;
+	double nQ;
+	double nQE; // environmental quality
 };
 
 /*Global variables*/
 
 
-
 std::vector <Female> popFemale(iPopsize / 2);
 std::vector <Male> popMale(iPopsize / 2);
-
 std::vector <Female> popOffFem(iPopsize / 2);
 std::vector <Male> popOffMale(iPopsize / 2);
 
-std::vector <double> vecpref;
-std::vector <double> vectrait1;
-std::vector <double> vectrait2;
-std::vector <double> vecTExpress;
-std::vector <double> vecQualityfem;
-std::vector <double> vecQualitymal;
-std::vector <int> vecpopsizemale;
-std::vector <int> vecpopsizefemale;
 
 
 /*Implementation of the class Individual*/
 
 Female::Female() {
 
-	vectorQ = std::vector <int>(iNgenesQ, 0);
-	std::normal_distribution <double> normalpre(0.0, 0.5);
-	double y = normalpre(rng);
-	double y2 = normalpre(rng);
-	double y3 = normalpre(rng);
-	p = y;
-	t1 = y2;
-	t2 = y3;
-
-	// show(); // to show how preferences where set
+	std::uniform_int_distribution <int> qdist(iNgenesQ / 2, iNgenesQ);
+	std::normal_distribution <double> normalpre(0.0, vartp);
+	std::uniform_real_distribution <double> enviDist(emin, emax);
+	p = normalpre(rng);
+	t1 = normalpre(rng);
+	t2 = normalpre(rng);
+	nQ = qdist(rng);
+	nQE = enviDist(rng);
 }
 
 Male::Male() {
-	vectorQ = std::vector <int>(iNgenesQ, 0);
-	std::normal_distribution <double> normalpre(0.0, 0.5);
-	double y = normalpre(rng);
-	double y2 = normalpre(rng);
-	double y3 = normalpre(rng);
-	p = y;
-	t1 = y2;
-	t2 = y3;
+	std::uniform_int_distribution <int> qdist(iNgenesQ / 2, iNgenesQ);
+	std::normal_distribution <double> normalpre(0.0, vartp);
+	std::uniform_real_distribution <double> enviDist(emin, emax);
+	p = normalpre(rng);
+	t1 = normalpre(rng);
+	t2 = normalpre(rng);
+	nQ = qdist(rng);
+	nQE = enviDist(rng);
 }
 
 double Female::getQ() {
-	double nQ = 0.;
-	for (int x = 0; x < iNgenesQ; ++x) {
-		double n = vectorQ[x];
-		nQ += n;
-	}
-	double div = vectorQ.size();
-	nQ /= div;
-	return nQ;
+	double nQ = getnumberQ();
+	double fq = nQ / iNgenesQ; // fraction good quality genes
+
+	double QE = getQE();
+	double quality = (1 - e)*(fq)+e*QE;
+
+	return quality;
 }
 
 double Male::getQ() {
-	double nQ = 0.;
-	for (int x = 0; x < iNgenesQ; ++x) {
-		double n = vectorQ[x];
-		nQ += n;
-	}
-	double div = vectorQ.size();
-	nQ /= div;
-	return nQ;
+	double nQ = getnumberQ();
+	double fq = nQ / iNgenesQ; 
+	double QE = getQE();
+	double quality = (1 - e)*(fq)+e*QE;
+	return quality;
 }
 
 double Male::gett() {
@@ -159,80 +150,36 @@ double Male::getS() {
 	return dS;
 }
 
-void Female::writegenome(double &P, std::vector <double> &vecT, std::vector <int>  &Nexvec)
+void Female::writegenome(double &P, std::vector <double> &vecT, int  &Nexqua)
 {
+	std::uniform_real_distribution <double> enviDist(emin, emax);
 	p = P;
 	t1 = vecT[0];
 	t2 = vecT[1];
-	vectorQ = Nexvec;
-	//std::cout << " Female DONE!and her p1 =" << p1 << "\n";
+	nQ = Nexqua;
+	nQE = enviDist(rng);
 }
 
-
-void Male::writegenome(double &P, std::vector <double> &vecT, std::vector <int>  &Nexvec)
+void Male::writegenome(double &P, std::vector <double> &vecT, int  &Nexqua)
 {
+	std::uniform_real_distribution <double> enviDist(emin, emax);
 	p = P;
 	t1 = vecT[0];
 	t2 = vecT[1];
-	vectorQ = Nexvec;
-	//std::cout << " Female DONE!and her p1 =" << p1 << "\n";
+	nQ = Nexqua;
+	nQE = enviDist(rng);
 }
+
 
 // Output files
 
-std::ofstream oo("Individual.csv");
-std::ofstream ofs("Alltrait.csv");
-
+std::ofstream oo;
+std::ofstream ofs;
+std::ofstream para;
 
 /*Simulation code*/
-void variationquality(std::vector <Female> &pop) {
-	for (int n = 0; n < (iNgenesQ*(iPopsize /3));) {
-		std::uniform_int_distribution <int> ind(0, (iPopsize / 4) - 1);
-		int i = ind(rng);
-		std::uniform_int_distribution <int> row(0, iNgenesQ - 1);
-		int x = row(rng);
-		pop[i].vectorQ[x] = 1;
-		++n;
-	}
 
-	for (int n = 0; n < (iNgenesQ*(iPopsize / 3)) ;) {
-		std::uniform_int_distribution <int> ind((iPopsize / 4), (iPopsize / 2) - 1);
-		int i = ind(rng);
-		std::uniform_int_distribution <int> row(0, iNgenesQ - 1);
-		int x = row(rng);
-		pop[i].vectorQ[x] = 1;
-		++n;
-	}
-
-}
-
-void variationquality(std::vector <Male> &pop) {
-
-	for (int n = 0; n < (iNgenesQ*(iPopsize / 3)) ;) {
-		std::uniform_int_distribution <int> ind(0, (iPopsize / 4) - 1);
-
-		int i = ind(rng);
-
-		std::uniform_int_distribution <int> row(0, iNgenesQ - 1);
-
-		int x = row(rng);
-		pop[i].vectorQ[x] = 1;
-		++n;
-	}
-
-
-	for (int n = 0; n < (iNgenesQ*(iPopsize / 3));) {
-		std::uniform_int_distribution <int> ind((iPopsize / 4), (iPopsize / 2) - 1);
-		int i = ind(rng);
-		std::uniform_int_distribution <int> row(0, iNgenesQ - 1);
-		int x = row(rng);
-
-		pop[i].vectorQ[x] = 1;
-		++n;
-	}
-}
-
-void getaverageQ() {
+double getaverageQ() {
 	double sump = 0.;
 	for (int i = 0; i < popFemale.size(); ++i) {
 		double p = popFemale[i].getQ();
@@ -240,21 +187,20 @@ void getaverageQ() {
 	}
 	double x = popFemale.size();
 	sump /= x;
-	//std::cout << " Average p in the female is"<< sump;
-	vecQualityfem.push_back(sump); // keep track of it
 
 	double sumq = 0.;
 	for (int i = 0; i < popMale.size(); ++i) {
 		double q = popMale[i].getQ();
 		sumq += q;
 	}
+
 	double x1 = popMale.size();
 	sumq /= x1;
-	//std::cout << " Average p in the female is"<< sump;
-	vecQualitymal.push_back(sumq); // keep track of i
+	double  tot = (sump + sumq) / 2;
+	return tot;
 }
 
-void getaveragep() {
+double getaveragep() {
 	double sump = 0.;
 	for (int i = 0; i < popFemale.size(); ++i) {
 		double p = popFemale[i].getp();
@@ -262,8 +208,7 @@ void getaveragep() {
 	}
 	double x = popFemale.size();
 	sump /= x;
-	//std::cout << " Average p in the female is"<< sump;
-	vecpref.push_back(sump); // keep track of it
+	return sump; // keep track of it
 }
 
 void getaveraget() {
@@ -281,10 +226,7 @@ void getaveraget() {
 	sumt1 /= x;
 	sumt2 /= x;
 	sumtot /= x;
-	//std::cout << " Average t in the male is" << sumt << "\n";
-	vectrait1.push_back(sumt1); // keep track of it
-	vectrait2.push_back(sumt2);
-	vecTExpress.push_back(sumtot);
+	ofs << ',' << sumt1 << ',' << sumt2 << ',' << sumtot;
 }
 
 
@@ -298,112 +240,100 @@ void addmutation(double &val) { // mutation for alleles p and t
 	}
 }
 
-void addQualMut(int &all) {
-	std::bernoulli_distribution ismutation(ni);
-	if (ismutation(rng)) {
-		all = 0;
-		//std::cout << "Bad quality MUTATION HAPPEN!";
+
+
+void madeoffspring(Female &fem, Male &male, const int &num, const bool &isfemale) {
+
+	double newp; // write alleles to inherit
+	std::vector <double> vecT(2, 0);
+	std::bernoulli_distribution Nallele(0.5); // mendelian inheritance
+
+											  // select new alleles p
+	double pfem = fem.getp();
+	double pmal = male.getp();
+
+	int x = Nallele(rng);
+	switch (x) {
+	case 0:
+		newp = pfem;
+		break;
+	case 1:
+		newp = pmal;
+		break;
+	default:
+		std::cout << " something wronk in chosing allele p for offspring";
 	}
 
-	std::bernoulli_distribution goodmut(vi);
-	if (goodmut(rng)) {
-		all = 1;
-		//std::cout << "GOODDDDD quality MUTATION HAPPEN!";
+	addmutation(newp);
+
+	//std::cout << " \n Alleles selected from mother" << vecP[0] << " And from the father = " << vecP[1] ;
+
+	// select new alleles t
+	std::pair <double, double> tfem = fem.gett1t2();
+	std::pair <double, double> tmal = male.gett1t2();
+
+
+	int y = Nallele(rng);
+	switch (y) {
+	case 0:
+		vecT[0] = tfem.first;
+		break;
+	case 1:
+		vecT[0] = tmal.first;
+		break;
+	default:
+		std::cout << " something wronk in chosing allele t  for offspring";
+	}
+
+	addmutation(vecT[0]);
+
+	int y1 = Nallele(rng);
+	switch (y1) {
+	case 0:
+		vecT[1] = tfem.second;
+		break;
+	case 1:
+		vecT[1] = tmal.second;
+		break;
+	default:
+		std::cout << " something wronk in chosing allele t for offspring";
+	}
+
+	addmutation(vecT[1]);
+
+	// select new quality matrix
+
+	double pm = fem.getQ();
+	double pf = male.getQ();
+
+
+	std::binomial_distribution <int> nMotherQuality(iNgenesQ / 2, pm);
+	std::binomial_distribution <int> nFatherQuality(iNgenesQ / 2, pf);
+
+	int qm = nMotherQuality(rng);
+
+	int qf = nFatherQuality(rng);
+
+
+	std::poisson_distribution <int> badmutation(ni);
+	double mut = badmutation(rng);
+
+
+	int newq = qm + qf - mut;
+
+
+	if (isfemale) {
+		popOffFem[num].writegenome(newp, vecT, newq); // first offspring is a female!! congrats
+
+	}
+	if (!isfemale) {
+		popOffMale[num].writegenome(newp, vecT, newq); // second offspring is a male!! congrats (but same father??, yes apparently she mate once)		
+
 	}
 }
 
-void madeoffspring(const Female &fem, const Male &male, const int &num, const bool &isfemale) {
+void defineRates(std::vector <double> &rates) {
 
-		double newp; // write alleles to inherit
-		std::vector <double> vecT(2, 0);
-		std::vector <int>  vectorQ(iNgenesQ, 0);
-		std::bernoulli_distribution Nallele(0.5); // mendelian inheritance
-
-												  // select new alleles p
-		double pfem = fem.getp();
-		//std::cout << " \n p1 = " << pfem.first << " and p2 = " << pfem.second;
-		double pmal = male.getp();
-
-		int x = Nallele(rng);
-		switch (x) {
-		case 0:
-			newp = pfem;
-			break;
-		case 1:
-			newp = pmal;
-			break;
-		default:
-			std::cout << " something wronk in chosing allele p for offspring";
-		}
-
-		addmutation(newp);
-
-		//std::cout << " \n Alleles selected from mother" << vecP[0] << " And from the father = " << vecP[1] ;
-
-		// select new alleles t
-		std::pair <double, double> tfem = fem.gett1t2();
-		std::pair <double, double> tmal = male.gett1t2();
-
-
-		int y = Nallele(rng);
-		switch (y) {
-		case 0:
-			vecT[0] = tfem.first;
-			break;
-		case 1:
-			vecT[0] = tmal.first;
-			break;
-		default:
-			std::cout << " something wronk in chosing allele t  for offspring";
-		}
-
-		addmutation(vecT[0]);
-
-		int y1 = Nallele(rng);
-		switch (y1) {
-		case 0:
-			vecT[1] = tfem.second;
-			break;
-		case 1:
-			vecT[1] = tmal.second;
-			break;
-		default:
-			std::cout << " something wronk in chosing allele t for offspring";
-		}
-
-		addmutation(vecT[1]);
-
-		// select new quality matrix
-
-		for (int i = 0; i < iNgenesQ; ++i) {
-			int q = Nallele(rng);
-			switch (q) {
-			case 0:
-				vectorQ[i] = fem.vectorQ[i];
-				break;
-			case 1:
-				vectorQ[i] = male.vectorQ[i];
-				break;
-			default:
-				std::cout << " something wronk in chosing allele t for offspring";
-			}
-
-			addQualMut(vectorQ[i]);
-
-		}
-
-		if (isfemale) {
-			popOffFem[num].writegenome(newp, vecT, vectorQ); // first offspring is a female!! congrats
-	
-		}
-		if (!isfemale) {
-			popOffMale[num].writegenome(newp, vecT, vectorQ); // second offspring is a male!! congrats (but same father??, yes apparently she mate once)		
-		
-		}
-}
-
-void defineRates( std::vector <double> &rates ) {
-	
 	for (int i = 0; i < popMale.size(); ++i) {
 		double qA = popMale[i].getQ();
 		double t = popMale[i].gett();
@@ -416,71 +346,84 @@ void defineRates( std::vector <double> &rates ) {
 
 }
 
-int selectmale(const Female &fem, const std::vector <double> &rates) {
-	//std::cout << " \n for this female is :";
-	
-	std::vector <int> nMale;
-	std::vector <double> attract;
-	// selec nTryMale and write their attractivness
+void defineFemaleFecundity(std::vector <double> &rates) {
 
-
-	for (int i = 0; i < nTryMale; ++i) {
-		std::discrete_distribution <int> Lottery(rates.begin(), rates.end());
-		int next = Lottery(rng);
-		nMale.push_back(next);
-		// calculate attractivness
-		double p = fem.getp();
-		double s = popMale[next].getS();
-		double r = exp(p*s);
-		attract.push_back(r);
-
-	}
-
-	std::discrete_distribution <int> weightLottery(attract.begin(), attract.end());
-	int j = weightLottery(rng);
-
-	return nMale[j];
-
-}
-
-int selectfemale() {
-
-	std::vector <double> rates;
-	// calculate fecundity
 	for (int i = 0; i < popFemale.size(); ++i) {
 		double qA = popFemale[i].getQ();
 		double p = popFemale[i].getp();
 		double v = viaA*qA + viaa* (1 - qA);
 		double cf = 1 - exp(-yeta*(p*p));
 		double hf = v * (1 - cf);
-		rates.push_back(hf);
+		rates[i] = hf;
 	}
+
+}
+
+
+int selectmale(const Female &fem, const std::vector <double> &rates) {
+
+	std::vector <double> attract(popMale.size());
+	// selec nTryMale and write their attractivness
+
+
+	for (int i = 0; i < popMale.size(); ++i) {
+		// calculate attractivness
+		double p = fem.getp();
+		double s = popMale[i].getS();
+		double r = exp(p*s);
+		attract[i] = r * rates[i];
+	}
+
+	std::discrete_distribution <int> Lottery(attract.begin(), attract.end());
+	int j = Lottery(rng);
+	return j;
+
+}
+
+int selectfemale(const std::vector <double> &rates) {
 
 	std::discrete_distribution <int> weightLottery(rates.begin(), rates.end());
 	int j = weightLottery(rng);
 	return j;
 
 }
+void defineMaleFecundity(std::vector <double> &rates) {
+
+	for (int i = 0; i < popMale.size(); ++i) {
+		double qA = popMale[i].getQ();
+		double t = popMale[i].gett();
+		double v = viaA*qA + viaa* (1 - qA);
+		double b = betaA*qA + beta* (1 - qA);
+		double cm = 1 - exp(-b*(t*t));
+		double hm = v * (1 - cm);
+		rates[i] = hm;
+	}
+
+}
 
 void NextGeneration() {
-	std::vector <double> rates;
-	defineRates(rates);
+	std::vector <double> MaleRates(popMale.size());
+	defineMaleFecundity(MaleRates);
 
+	std::vector <double> FemaleRates(popFemale.size());
+	defineFemaleFecundity(FemaleRates);
 
 	isfemale = true;
+
 	for (int i = 0; i < popOffFem.size(); ++i) {
-		int f = selectfemale(); // selected based on fecundity
-		int y = selectmale(popFemale[f], rates); // number of males will mate with female f
+		int f = selectfemale(FemaleRates); // selected based on fecundity
+		int y = selectmale(popFemale[f], MaleRates); // number of males will mate with female f
 		madeoffspring(popFemale[f], popMale[y], i, isfemale);
 	}
+
+
 	isfemale = false;
 
-	for (int i = 0; i < popOffMale.size(); ++i) {
-		int f1 = selectfemale(); // selected based on fecundity
-		int y1 = selectmale(popFemale[f1], rates); // number of males will mate with female f
-		madeoffspring(popFemale[f1], popMale[y1], i, isfemale);
+	for (int i = 0; i < popOffFem.size(); ++i) {
+		int f = selectfemale(FemaleRates); // selected based on fecundity
+		int y = selectmale(popFemale[f], MaleRates); // number of males will mate with female f
+		madeoffspring(popFemale[f], popMale[y], i, isfemale);
 	}
-
 }
 
 
@@ -488,14 +431,8 @@ void NextGeneration() {
 void update() {
 	popFemale = popOffFem;
 	popMale = popOffMale;
-	popOffFem = std::vector <Female>(iPopsize/2);
-	popOffMale = std::vector <Male>(iPopsize/2);
-
-	getaveragep();
-	getaveraget();
-	getaverageQ();
-	vecpopsizemale.push_back(popMale.size());
-	vecpopsizefemale.push_back(popFemale.size());
+	popOffFem = std::vector <Female>(iPopsize / 2);
+	popOffMale = std::vector <Male>(iPopsize / 2);
 }
 
 
@@ -520,8 +457,45 @@ void writeshit() {
 
 }
 
-void refresh() {
+void writeState() {
+	double p = getaveragep();
+	ofs << ',' << p;
+	getaveraget();
+	double q = getaverageQ();
+	ofs << ',' << q;
+	double alfaK = q*alfaA + (1 - q)*alfaa;
+	double betaK = q*betaA + (1 - q)*beta;
+	double TPredicted = p*alfaK / (2 * betaK);
+	ofs << ',' << TPredicted << std::endl;
 
+}
+
+
+void recordParameter() {
+	para << "  Seed = " << seed << "\n";
+	para << " iNgenesQ = " << ',' << iNgenesQ << "\n";
+	para << " m = " << ',' << m << "\n";
+	para << " ni = " << ',' << ni << "\n";
+	para << " signma = " << ',' << signma << "\n";
+	para << " alfaA = " << ',' << alfaA << "\n";
+	para << " alfaa = " << ',' << alfaa << "\n";
+	para << " viaA = " << ',' << viaA << "\n";
+	para << " viaa = " << ',' << viaa << "\n";
+	para << " betaA = " << ',' << betaA << "\n";
+	para << " betaa = " << ',' << beta << "\n";
+	para << " yeta = " << ',' << yeta << "\n";
+	para << " PopSize = " << ',' << iPopsize << "\n";
+	para << " Tmax = " << ',' << tmax << "\n";
+	para << " f = " << ',' << f << "\n";
+	para << " e = " << ',' << e << "\n";
+	para << " emin = " << ',' << emin << "\n";
+	para << " emax = " << ',' << emax << "\n";
+	para << " Initial variation witdh = " << ',' << vartp << "\n";
+	para << " Nsimulation = " << ',' << iNsimulation << "\n";
+}
+
+
+void refresh() {
 
 	popFemale = std::vector <Female>(iPopsize / 2);
 	popMale = std::vector <Male>(iPopsize / 2);
@@ -535,39 +509,19 @@ void refresh() {
 	assert(popOffFem.size() == iPopsize / 2);
 	assert(popOffMale.size() == iPopsize / 2);
 
-
-	vecpref.erase(vecpref.begin(), vecpref.end());
-	assert(vecpref.empty());
-
-	vectrait1.erase(vectrait1.begin(), vectrait1.end());
-	assert(vectrait1.empty());
-
-	vectrait2.erase(vectrait2.begin(), vectrait2.end());
-	assert(vectrait2.empty());
-
-	vecTExpress.erase(vecTExpress.begin(), vecTExpress.end());
-	assert(vecTExpress.empty());
-
-	vecQualityfem.erase(vecQualityfem.begin(), vecQualityfem.end());
-	assert(vecQualityfem.empty());
-
-	vecQualitymal.erase(vecQualitymal.begin(), vecQualitymal.end());
-	assert(vecQualitymal.empty());
-
-	vecpopsizemale.erase(vecpopsizemale.begin(), vecpopsizemale.end());
-	assert(vecpopsizemale.empty());
-
-	vecpopsizefemale.erase(vecpopsizefemale.begin(), vecpopsizefemale.end());
-	assert(vecpopsizefemale.empty());
-
 }
+
 /*Main (se mai ci arriverò)(sono già qua) ( e siamo a 350 lines!)(450 now baby)*/
+
 
 int main() {
 
+	oo.open("Individual.csv", std::ios_base::app);
+	ofs.open("Alltrait.csv", std::ios_base::app);
+	para.open("Parameter.csv", std::ios_base::app);
 
-	// obtain seed from system clock
 
+	recordParameter();
 	for (int ns = 0; ns < iNsimulation; ++ns) {
 		// initial shit
 		std::cout << " SIMULATION N =  " << ns << std::endl;
@@ -575,19 +529,16 @@ int main() {
 		if (ns != 0)
 			refresh();
 
-		variationquality(popMale); // distributred high quality genes around males
-								   //std::cout << " FIRST VARIATION QUALITY WORKED \n";
-		variationquality(popFemale); //same for females
-									 //showmatrixQ(); // check it works, it does
+		// initial shit
 
-	
-									 //calcualte average p in females
-		getaveragep();
-		getaveraget();
-		getaverageQ();
-		vecpopsizemale.push_back(popMale.size());
-		vecpopsizefemale.push_back(popFemale.size());
-	
+		oo << " \n Simulation N = " << seed << "\n";
+
+		ofs << "  " << std::endl;
+		ofs << " Seed " << ',' << " Time t " << ',' << " Preference p " << ',' << " Trait t1  " << ',' << " Trait t2 " << ',' << " t express " << ',' << " Mean quality" << ',' << " T predicted" << std::endl;
+
+
+		// initial shit
+
 
 		/*START SIMULATION FOR A LOT OF GENERATIONSSSSSS*/
 
@@ -595,38 +546,30 @@ int main() {
 
 
 			if (t % 100 == 0) {
-				std::cout << " generation N =  " << t << std::endl;
 				oo << " \n NEXT GENERATION " << t << "\n";
+				std::cout << " \n Generation n =  " << t << "\n";
 				writeshit();
-				//std::cout << " POp female = " << popFemale.size() << " POp male = " << popMale.size() << std::endl;
+				ofs << seed << ',' << t;
+				writeState();
 			}
 
-			if (popFemale.size() == 0 || popMale.size() < nTryMale) {
-				std::cout << " POPULATION GOT EXTINTTT MAAAAAAAANNN" << std::endl;
-				break;
-			}
+
 
 			// creat next generation
 			NextGeneration();
-	
+
+
 			// Survivors became PARENTS!! congratss and CLEAR OFF POP, save p and t traits
 			update();
 
 
 		}
-	
+	}
+	oo.close();
+	ofs.close();
+	para.close();
 
-		// Check evolution of p and t
-		ofs << " SIMULATION N = " << ns << " Random seed = " << seed << std::endl;
-
-		ofs << " Time t " << ',' << " Preference p " << ',' << " Trait t1  " << ',' << " Trait t2 " << ',' << " t express " << ',' << " Population size male  " << ',' << " Population size FEMmale  " << ',' << " Mean quality female " << ',' << " Mean quality male " << std::endl;
-		for (int i = 0; i < tmax + 1; ) {
-			//std::cout << i << ',' << vecpref[i] << ',' << vectrait1[i] << ',' << vectrait2[i] << ',' << vecpopsizemale[i] << ',' << vecpopsizefemale[i] << ',' << vecQualityfem[i] << ',' << vecQualitymal[i] << std::endl;
-			ofs << i << ',' << vecpref[i] << ',' << vectrait1[i] << ',' << vectrait2[i] << ',' << vecTExpress[i] << ',' << vecpopsizemale[i] << ',' << vecpopsizefemale[i] << ',' << vecQualityfem[i] << ',' << vecQualitymal[i] << std::endl;
-			i = i + 100;
-		}
-
-}
 	return 0;
 }
+
 
