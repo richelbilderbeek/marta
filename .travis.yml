@@ -39,11 +39,11 @@ script:
   - make debug
   - ./marta
   # helgrind
-  - valgrind --tool=helgrind --log-file=helgrind.log -v ./marta
-  - cat helgrind.log
+  #- valgrind --tool=helgrind --log-file=helgrind.log -v ./marta
+  #- cat helgrind.log
   # memcheck
-  - valgrind --leak-check=full -v --show-reachable=yes --log-file=memcheck.log ./marta
-  - cat memcheck.log
+  #- valgrind --leak-check=full -v --show-reachable=yes --log-file=memcheck.log ./marta
+  #- cat memcheck.log
   # Profiling, requires a rebuild in release mode
   - qmake marta.pro
   - make release
