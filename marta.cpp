@@ -37,7 +37,7 @@ double beta = 0.5;
 double betaA = 0.5;
 double yeta = 0.05;
 int iPopsize = 200; // keep it even
-int tmax = 10001; // +1!!!
+int tmax = 501; // +1!!!
 bool isfemale;
 double f = 0.; // f for condition dependent expression of t 1= no condition dependent
 double e = 0; // for environmental dependency on quality 0= no environmental effects
